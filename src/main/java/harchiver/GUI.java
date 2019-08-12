@@ -100,6 +100,12 @@ public class GUI {
             if (result != JFileChooser.APPROVE_OPTION) return;
 
             File selectedFile = packFileChooser.getSelectedFile();
+            try {
+                packer.pack(selectedFile);
+                print("Файл успешно упакован");
+            } catch (Exception ex) {
+                print("Ошибка: " + ex.getMessage());
+            }
         }
     };
 
@@ -110,12 +116,6 @@ public class GUI {
             if (result != JFileChooser.APPROVE_OPTION) return;
 
             File selectedFile = packFileChooser.getSelectedFile();
-            try {
-                packer.pack(selectedFile);
-                print("Файл успешно упакован");
-            } catch (Exception ex) {
-                print("Ошибка: " + ex.getMessage());
-            }
         }
     };
 

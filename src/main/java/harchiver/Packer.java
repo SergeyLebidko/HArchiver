@@ -34,7 +34,6 @@ public class Packer {
 
             //Запаковываем данные
             createFileData(inputChannel, outputChannel);
-
         } catch (Exception e) {
             throw new Exception("Не удалось создать архив");
         }
@@ -102,11 +101,13 @@ public class Packer {
     }
 
     private void createFileData(FileChannel inputChannel, FileChannel outputChannel) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(1024);    //Буфер для хранения прочитанных байт из файла-источника
-        StringBuffer hBuffer = new StringBuffer();        //Буфер для хранения кодов, которые будут записаны в файл-приёмник
-        String key;                                       //Ключ для поиска кода в таблице Хаффмана
-        String code;                                      //Код, полученный из таблицы Хаффмана
-        int readBytes;
+        int sizeBuffer = 1024;
+        ByteBuffer buffer = ByteBuffer.allocate(sizeBuffer);    //Буфер для хранения прочитанных байт из файла-источника
+        StringBuffer hBuffer = new StringBuffer();              //Буфер для хранения кодов, которые будут записаны в файл-приёмник
+        String key;                                             //Ключ для поиска кода в таблице Хаффмана
+        String code;                                            //Код, полученный из таблицы Хаффмана
+        int readBytes;                                          //Количество байт, прочитанных из файла в буфер
+        int writeBytes;                                         //Количество байт, записанных в буфер
 
         while (true) {
             readBytes = inputChannel.read(buffer);
@@ -117,9 +118,32 @@ public class Packer {
                     code = htable.get(key);
                     hBuffer.append(code);
                 }
+
+                //Сбрасываем на диск содержимое hBuffer
+                buffer.clear();
+                writeBytes = 0;
+                while (hBuffer.length() >= 8) {
+                    buffer.put(convertStringToByte(hBuffer.substring(0, 8)));
+                    writeBytes++;
+                    hBuffer.delete(0, 8);
+                    if (writeBytes == sizeBuffer | hBuffer.length() < 8) {
+                        buffer.flip();
+                        outputChannel.write(buffer);
+                        buffer.clear();
+                        writeBytes = 0;
+                    }
+                }
+            } else {
+                //Сбрасываем на диск содержимое hBuffer и при этом фирмируем значение конечного байта файла
+                buffer.clear();
+                int finalValue = hBuffer.length();
+                while (hBuffer.length() < 8) {
+                    hBuffer.append('0');
+                }
+                buffer.put(convertStringToByte(hBuffer.substring(0, 8)));
+                buffer.put((byte) finalValue);
+                break;
             }
-
-
         }
     }
 
