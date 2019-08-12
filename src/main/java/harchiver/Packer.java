@@ -33,7 +33,7 @@ public class Packer {
             createFileHeader(outputChannel, getFileExtension(inputFile));
 
             //Запаковываем данные
-            // *****************
+            createFileData(inputChannel, outputChannel);
 
         } catch (Exception e) {
             throw new Exception("Не удалось создать архив");
@@ -101,6 +101,28 @@ public class Packer {
         outputChannel.write(buffer);
     }
 
+    private void createFileData(FileChannel inputChannel, FileChannel outputChannel) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(1024);    //Буфер для хранения прочитанных байт из файла-источника
+        StringBuffer hBuffer = new StringBuffer();        //Буфер для хранения кодов, которые будут записаны в файл-приёмник
+        String key;                                       //Ключ для поиска кода в таблице Хаффмана
+        String code;                                      //Код, полученный из таблицы Хаффмана
+        int readBytes;
+
+        while (true) {
+            readBytes = inputChannel.read(buffer);
+
+            if (readBytes != (-1)) {
+                for (int i = 0; i < readBytes; i++) {
+                    key = convertByteToString(buffer.get(i));
+                    code = htable.get(key);
+                    hBuffer.append(code);
+                }
+            }
+
+
+        }
+    }
+
     private File getOutputFile(File file) {
         String nameFile = getFileName(file);
         return new File(file.getParent(), nameFile + ".lsa");
@@ -137,6 +159,14 @@ public class Packer {
             mul *= 2;
         }
         return (byte) result;
+    }
+
+    //Метод возвращает строковое представление байта
+    private String convertByteToString(byte b) {
+        String byteString = Integer.toBinaryString(b);
+        byteString = "0000000" + byteString;
+        byteString = byteString.substring(byteString.length() - 8);
+        return byteString;
     }
 
 }
