@@ -12,6 +12,9 @@ public class GUI {
     private final int w = 650;
     private final int h = 350;
 
+    private Packer packer;
+    private Unpacker unpacker;
+
     private JFrame frm;
     private JTextArea outputArea;
 
@@ -45,7 +48,10 @@ public class GUI {
 
     }
 
-    public GUI() {
+    public GUI(Packer packer, Unpacker unpacker) {
+        this.packer = packer;
+        this.unpacker = unpacker;
+
         UIManager.put("FileChooser.cancelButtonText", "Отмена");
         UIManager.put("FileChooser.directoryOpenButtonText", "Открыть");
 
@@ -104,6 +110,12 @@ public class GUI {
             if (result != JFileChooser.APPROVE_OPTION) return;
 
             File selectedFile = packFileChooser.getSelectedFile();
+            try {
+                packer.pack(selectedFile);
+                print("Файл успешно упакован");
+            } catch (Exception ex) {
+                print("Ошибка: " + ex.getMessage());
+            }
         }
     };
 

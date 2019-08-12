@@ -3,7 +3,9 @@ package harchiver;
 public class MainClass {
 
     public static void main(String[] args) {
-        GUI gui = new GUI();
+        Packer packer = new Packer();
+        Unpacker unpacker = new Unpacker();
+        GUI gui = new GUI(packer, unpacker);
     }
 
 }
