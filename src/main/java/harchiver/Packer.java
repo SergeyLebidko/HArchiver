@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Map;
+import static harchiver.FileUtilities.*;
+import static harchiver.Converters.*;
 
 public class Packer {
 
@@ -25,7 +27,7 @@ public class Packer {
         htable = tableCreator.createTable(inputFile);
 
         //Третий этап - файловые операции
-        File outputFile = getOutputFile(inputFile);
+        File outputFile = createNameOutputFile(inputFile);
         try (FileChannel inputChannel = new FileInputStream(inputFile).getChannel();
              FileChannel outputChannel = new FileOutputStream(outputFile).getChannel()) {
 
@@ -134,8 +136,7 @@ public class Packer {
                     }
                 }
             } else {
-                //Сбрасываем на диск содержимое hBuffer и при этом фирмируем значение конечного байта файла
-                buffer.clear();
+                //Сбрасываем на диск содержимое hBuffer и при этом формируем значение конечного байта файла
                 int finalValue = hBuffer.length();
                 while (hBuffer.length() < 8) {
                     hBuffer.append('0');
@@ -147,50 +148,9 @@ public class Packer {
         }
     }
 
-    private File getOutputFile(File file) {
+    private File createNameOutputFile(File file) {
         String nameFile = getFileName(file);
         return new File(file.getParent(), nameFile + ".lsa");
-    }
-
-    private String getFileExtension(File file) {
-        String fileName = file.getName();
-        int dotPos = fileName.lastIndexOf(".");
-        if ((dotPos == (-1)) | (dotPos == 0) | (dotPos == (fileName.length() - 1))) {
-            return "";
-        } else {
-            return (fileName.substring(dotPos + 1)).toLowerCase();
-        }
-    }
-
-    private String getFileName(File file) {
-        String fileName = file.getName();
-        int dotPos = fileName.lastIndexOf(".");
-        if ((dotPos == (-1)) | dotPos == 0 | (dotPos == (fileName.length() - 1))) {
-            return fileName;
-        } else {
-            return fileName.substring(0, dotPos);
-        }
-    }
-
-    //Метод преобразовывает восьмисимвольную строку из символов 0 и 1 в соответствующее ей значение типа byte
-    private byte convertStringToByte(String str) {
-        int result = 0;
-        int mul = 1;
-        for (int i = (str.length() - 1); i >= 0; i--) {
-            if (str.charAt(i) == '1') {
-                result = result | mul;
-            }
-            mul *= 2;
-        }
-        return (byte) result;
-    }
-
-    //Метод возвращает строковое представление байта
-    private String convertByteToString(byte b) {
-        String byteString = Integer.toBinaryString(b);
-        byteString = "0000000" + byteString;
-        byteString = byteString.substring(byteString.length() - 8);
-        return byteString;
     }
 
 }
