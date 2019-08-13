@@ -102,7 +102,7 @@ public class GUI {
             File selectedFile = packFileChooser.getSelectedFile();
             try {
                 packer.pack(selectedFile);
-                print("Файл " + selectedFile.getName() + "успешно упакован");
+                print("Файл " + selectedFile.getName() + " успешно упакован");
             } catch (Exception ex) {
                 print("Ошибка: " + ex.getMessage());
             }

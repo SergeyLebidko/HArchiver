@@ -97,7 +97,9 @@ public class HTableCreator {
         createHuffmanTree();
 
         //Пятый этап - построение таблицы Хаффмана
-        createHuffmanTable(root, new LinkedList<>());
+        LinkedList<Integer> list = new LinkedList<>();
+        list.add(0);
+        createHuffmanTable(root, list);
 
         return htable;
     }
