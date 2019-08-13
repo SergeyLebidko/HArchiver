@@ -23,4 +23,11 @@ public class Converters {
         return byteString;
     }
 
+    //Метод преобразовывает переданный байт в целочисленное значение, которое всегда является числом в диапазоне 0..255
+    public static int convertByteToInt(byte b) {
+        if (b >= 0) return (int) b;
+        if (b < 0) return b + 256;
+        return 0;
+    }
+
 }

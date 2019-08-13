@@ -115,7 +115,13 @@ public class GUI {
             int result = unpackFileChooser.showDialog(frm, "Выбрать");
             if (result != JFileChooser.APPROVE_OPTION) return;
 
-            File selectedFile = packFileChooser.getSelectedFile();
+            File selectedFile = unpackFileChooser.getSelectedFile();
+            try {
+                unpacker.unpack(selectedFile);
+                print("Архив " + selectedFile.getName() + " успешно распакован");
+            } catch (Exception ex) {
+                print("Ошибка: " + ex.getMessage());
+            }
         }
     };
 
