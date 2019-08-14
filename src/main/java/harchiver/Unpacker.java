@@ -2,6 +2,7 @@ package harchiver;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.HashMap;
@@ -29,9 +30,14 @@ public class Unpacker {
             //Сперва читаем заголовок архива
             readArchiveHeader(inputChannel, inputFile);
 
-            //Затем - данные для разархивирования
-            // *********************************
+            //Затем - разархивируем данные
+            try (FileChannel outputChannel = new FileOutputStream(outputFile).getChannel()) {
+                readFileData(inputChannel, outputChannel);
+            } catch (Exception e) {
+                throw e;
+            }
         } catch (Exception e) {
+            System.out.println(e);
             throw new Exception("Не удалось распаковать архив");
         }
 
@@ -84,6 +90,53 @@ public class Unpacker {
                 extension[i] = buffer.get(i);
             }
             outputFile = new File(inputFile.getParent(), getFileName(inputFile) + "." + new String(extension));
+        }
+    }
+
+    private void readFileData(FileChannel inputChannel, FileChannel outputChannel) throws Exception {
+        int sizeBuffer = 1024;
+        ByteBuffer buffer = ByteBuffer.allocate(sizeBuffer);
+        StringBuffer hBuffer = new StringBuffer();
+        int readBytes;
+
+        while (true) {
+            buffer.clear();
+            readBytes = inputChannel.read(buffer);
+            if (readBytes == (-1)) break;
+            for (int i = 0; i < readBytes; i++) {
+                hBuffer.append(convertByteToString(buffer.get(i)));
+            }
+        }
+
+        int tailValue = convertStringToByte(hBuffer.substring(hBuffer.length() - 8, hBuffer.length()));
+        hBuffer.delete(hBuffer.length() - 16 + tailValue, hBuffer.length());
+
+        int writeBytes = 0;
+        int pos = 0;
+        String key;
+        String value;
+        buffer.clear();
+        while (true) {
+            pos++;
+            key = hBuffer.substring(0, pos);
+            value = htable.get(key);
+
+            if (value != null) {
+                buffer.put(convertStringToByte(value));
+                writeBytes++;
+                hBuffer.delete(0, pos);
+
+                if (writeBytes == sizeBuffer | hBuffer.length() == 0) {
+                    buffer.flip();
+                    outputChannel.write(buffer);
+                    buffer.clear();
+                    writeBytes = 0;
+                }
+
+                pos = 0;
+                if (hBuffer.length() == 0) break;
+                System.out.println(hBuffer.length());
+            }
         }
     }
 

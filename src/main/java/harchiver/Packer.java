@@ -115,6 +115,7 @@ public class Packer {
         while (true) {
             readBytes = inputChannel.read(buffer);
 
+            //Заполняем hBuffer. Он будет содержать преобразованные по таблице Хаффмана байты исходного файла
             if (readBytes != (-1)) {
                 for (int i = 0; i < readBytes; i++) {
                     key = convertByteToString(buffer.get(i));
@@ -142,6 +143,7 @@ public class Packer {
                 while (hBuffer.length() < 8) {
                     hBuffer.append('0');
                 }
+                buffer.clear();
                 buffer.put(convertStringToByte(hBuffer.substring(0, 8)));
                 buffer.put((byte) finalValue);
                 break;
