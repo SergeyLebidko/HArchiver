@@ -4,26 +4,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Map;
 
 import static harchiver.FileUtilities.*;
-import static harchiver.Converters.*;
 
 public class Packer {
-
-    private GUI gui;
 
     private HTableCreator tableCreator;
     private Map<String, String> htable;
 
     public Packer() {
         tableCreator = new HTableCreator();
-    }
-
-    public void setGui(GUI gui) {
-        this.gui = gui;
     }
 
     public void pack(File inputFile) throws Exception {
@@ -47,7 +39,7 @@ public class Packer {
             //Запаковываем данные
             createFileData(reader, writer);
         } catch (Exception e) {
-            throw e;
+            throw new Exception("не удалось упаковать файл. Ошибка: " + e);
         }
     }
 
@@ -72,13 +64,7 @@ public class Packer {
         writer.put(recordCount);
         writer.put(recordLength);
 
-        gui.println("Количество записей:  " + recordCount);
-        gui.println("Длина каждой записи: " + recordLength);
-
         //Вносим в заголовок архива записи таблицы Хаффмана, которые будут нужны при распаковке
-        gui.println();
-        gui.println("Таблица Хаффмана:");
-
         String key;                   //Байт - ключ
         String valueHuffmanCode;      //Код Хаффмана для данного байта-ключа
         byte lengthHuffmanCode;       //Длина кода Хаффмана в битах
@@ -100,34 +86,20 @@ public class Packer {
             for (int i = 0; i < valueHuffmanCode.length(); i += 8) {
                 writer.put(valueHuffmanCode.substring(i, i + 8));
             }
-
-            gui.println(key + "[" + convertStringToByte(key) + "]" + " :: " + lengthHuffmanCode + " :: " + valueHuffmanCode);
         }
 
         //Вносим в заголовок предыдущее расширение файла и его длину
-        gui.println();
-
         int extensionLength = inputFileExtension.getBytes().length;
         writer.put(extensionLength);
-
-        gui.println("Длина расширения: " + extensionLength);
-
         if (extensionLength != 0) {
             for (byte b : inputFileExtension.getBytes()) {
                 writer.put(b);
-                gui.print(b + " ");
             }
         }
-
-        gui.println();
-
         writer.forceWrite();
     }
 
     private void createFileData(BufferReader reader, BufferWriter writer) throws IOException {
-        gui.println();
-        gui.println("Секция данных:");
-
         String key;
         String code;
         StringBuffer buffer = new StringBuffer();
@@ -139,15 +111,9 @@ public class Packer {
             buffer.append(code);
             while (buffer.length() >= 8) {
                 writer.put(buffer.substring(0, 8));
-
-                gui.println(String.format("%-4s", convertStringToByte(buffer.substring(0, 8))) + " :: " + buffer.substring(0, 8));
-
                 buffer.delete(0, 8);
             }
         }
-
-        gui.println();
-        gui.println("Концевик:");
 
         int tileValue = buffer.length();
         while (buffer.length() < 8) {
@@ -157,9 +123,6 @@ public class Packer {
         writer.put(tileValue);
 
         writer.forceWrite();
-
-        gui.println(String.format("%-4s", convertStringToByte(buffer.substring(0, 8))) + " :: " + buffer.substring(0, 8));
-        gui.println(String.format("%-4s", convertByteToString((byte) tileValue)) + " :: " + tileValue);
     }
 
     private File createNameOutputFile(File file) {

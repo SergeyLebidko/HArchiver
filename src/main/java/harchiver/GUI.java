@@ -9,8 +9,8 @@ import java.io.File;
 
 public class GUI {
 
-    private final int w = 1400;
-    private final int h = 950;
+    private final int w = 700;
+    private final int h = 400;
 
     private Packer packer;
     private Unpacker unpacker;
@@ -88,9 +88,6 @@ public class GUI {
         unpackFileChooser = new JFileChooser();
         unpackFileChooser.setDialogTitle("Выберите файл");
         unpackFileChooser.setFileFilter(new ArchiveFileFilter());
-
-        toArchiveBtn.setEnabled(false);
-        fromArchiveBtn.setEnabled(false);
 
         frm.setContentPane(contentPane);
         frm.setVisible(true);
