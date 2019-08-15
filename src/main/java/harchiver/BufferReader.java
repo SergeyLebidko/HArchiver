@@ -9,7 +9,7 @@ import static harchiver.Converters.*;
 
 public class BufferReader {
 
-    private static final int SIZE_BUFFER = 2048;
+    private static final int SIZE_BUFFER = 4096;
 
     private FileChannel channel;
     private ByteBuffer buffer;

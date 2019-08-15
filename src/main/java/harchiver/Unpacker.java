@@ -54,6 +54,7 @@ public class Unpacker {
     private void readArchiveHeader(BufferReader reader, File inputFile) throws Exception {
         //Получаем информацию о количестве записей в таблице Хаффмана и размере каждой записи
         int recordCount = reader.getAsPositiveInt();
+        if (recordCount == 0) recordCount = 256;
         int recordLength = reader.getAsPositiveInt();
 
         //Читаем таблицу. Ключами становятся коды Хаффмана
@@ -65,7 +66,7 @@ public class Unpacker {
         for (int i = 0; i < recordCount; i++) {
             key = reader.getAsString();
 
-            lengthValue = reader.getAsByte();
+            lengthValue = reader.getAsPositiveInt();
             if (lengthValue == 0) lengthValue = 256;
 
             value.delete(0, value.length());
@@ -78,7 +79,7 @@ public class Unpacker {
         }
 
         //Читаем расширение и формируем выходное имя для файла
-        int extensionLength = reader.getAsByte();
+        int extensionLength = reader.getAsPositiveInt();
         if (extensionLength == 0) {
             outputFile = new File(inputFile.getParent(), getFileName(inputFile));
         } else {

@@ -52,6 +52,7 @@ public class Packer {
     private void createFileHeader(BufferWriter writer, String inputFileExtension) throws IOException {
         //Определяем количество записей в таблице Хаффмана
         int recordCount = htable.size();
+        if (recordCount == 256) recordCount = 0;
 
         //Определяем длину каждой записи
         int maxCodeSize = 0;
