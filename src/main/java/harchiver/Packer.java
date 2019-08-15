@@ -13,11 +13,17 @@ import static harchiver.Converters.*;
 
 public class Packer {
 
+    private GUI gui;
+
     private HTableCreator tableCreator;
     private Map<String, String> htable;
 
     public Packer() {
         tableCreator = new HTableCreator();
+    }
+
+    public void setGui(GUI gui) {
+        this.gui = gui;
     }
 
     public void pack(File inputFile) throws Exception {

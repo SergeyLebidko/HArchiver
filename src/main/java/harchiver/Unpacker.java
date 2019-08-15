@@ -13,11 +13,17 @@ import static harchiver.Converters.*;
 
 public class Unpacker {
 
+    private GUI gui;
+
     private Map<String, String> htable;
     private File outputFile;
 
     public Unpacker() {
         htable = new HashMap<>();
+    }
+
+    public void setGui(GUI gui) {
+        this.gui = gui;
     }
 
     public void unpack(File inputFile) throws Exception {
