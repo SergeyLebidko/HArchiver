@@ -33,17 +33,19 @@ public class Unpacker {
         //Второй этап - файловые операции
         try (FileChannel inputChannel = new FileInputStream(inputFile).getChannel()) {
 
+            BufferReader reader = new BufferReader(inputChannel);
+
             //Сперва читаем заголовок архива
-            readArchiveHeader(inputChannel, inputFile);
+            readArchiveHeader(reader, inputFile);
 
             //Затем - разархивируем данные
             try (FileChannel outputChannel = new FileOutputStream(outputFile).getChannel()) {
-                readFileData(inputChannel, outputChannel);
+                BufferWriter writer = new BufferWriter(outputChannel);
+                readFileData(reader, writer);
             } catch (Exception e) {
                 throw e;
             }
         } catch (Exception e) {
-            System.out.println(e);
             throw new Exception("Не удалось распаковать архив");
         }
 
@@ -56,93 +58,72 @@ public class Unpacker {
         if (!getFileExtension(file).equals("lsa")) throw new Exception("Некорректный тип файла");
     }
 
-    private void readArchiveHeader(FileChannel inputChannel, File inputFile) throws Exception {
+    private void readArchiveHeader(BufferReader reader, File inputFile) throws Exception {
         //Получаем информацию о количестве записей в таблице Хаффмана и размере каждой записи
-        ByteBuffer buffer = ByteBuffer.allocate(2);
-        inputChannel.read(buffer);
-        int recordCount = convertByteToInt(buffer.get(0));
-        int recordLength = convertByteToInt(buffer.get(1));
+        int recordCount = reader.getAsByte();
+        int recordLength = reader.getAsByte();
+
+        gui.println("Количество записей:  " + recordCount);
+        gui.println("Длина каждой записи: " + recordLength);
 
         //Читаем таблицу. Ключами становятся коды Хаффмана
-        StringBuffer key = new StringBuffer();
-        String value;
-        int keyLength;
-        buffer = ByteBuffer.allocate(recordLength);
+        gui.println();
+        gui.println("прочитана таблица Хаффмана:");
+
+        htable.clear();
+
+        String key;
+        int lengthValue;
+        StringBuffer value = new StringBuffer();
+
         for (int i = 0; i < recordCount; i++) {
-            inputChannel.read(buffer);
+            key = reader.getAsString();
 
-            value = convertByteToString(buffer.get(0));
-            keyLength = convertByteToInt(buffer.get(1));
-            key.delete(0, key.length());
-            for (int j = 2; j < recordLength; j++) {
-                key.append(convertByteToString(buffer.get(j)));
+            lengthValue = reader.getAsByte();
+            if (lengthValue == 0) lengthValue = 256;
+
+            value.delete(0, value.length());
+            for (int j = 0; j < (recordLength - 2); j++) {
+                value.append(reader.getAsString());
             }
-            htable.put(key.substring(0, keyLength), value);
+            value.delete(lengthValue, value.length());
 
-            buffer.clear();
+            gui.println(String.format("%-20s", value) + " :: " + key);
+
+            htable.put(value.toString(), key);
         }
 
         //Читаем расширение и формируем выходное имя для файла
-        buffer = ByteBuffer.allocate(1);
-        inputChannel.read(buffer);
-        int extensionLength = convertByteToInt(buffer.get(0));
+        gui.println();
+
+        int extensionLength = reader.getAsByte();
+        gui.println("Длина расширения (байт): " + extensionLength);
+
         if (extensionLength == 0) {
             outputFile = new File(inputFile.getParent(), getFileName(inputFile));
         } else {
-            buffer = ByteBuffer.allocate(extensionLength);
-            inputChannel.read(buffer);
             byte[] extension = new byte[extensionLength];
             for (int i = 0; i < extensionLength; i++) {
-                extension[i] = buffer.get(i);
+                extension[i] = reader.getAsByte();
             }
+
+            gui.println("Расширение: " + new String(extension));
+
             outputFile = new File(inputFile.getParent(), getFileName(inputFile) + "." + new String(extension));
         }
+
     }
 
-    private void readFileData(FileChannel inputChannel, FileChannel outputChannel) throws Exception {
-        int sizeBuffer = 1024;
-        ByteBuffer buffer = ByteBuffer.allocate(sizeBuffer);
-        StringBuffer hBuffer = new StringBuffer();
-        int readBytes;
+    private void readFileData(BufferReader reader, BufferWriter writer) throws Exception {
+        gui.println();
+        gui.println("Секция данных:");
 
-        while (true) {
-            buffer.clear();
-            readBytes = inputChannel.read(buffer);
-            if (readBytes == (-1)) break;
-            for (int i = 0; i < readBytes; i++) {
-                hBuffer.append(convertByteToString(buffer.get(i)));
-            }
-        }
-
-        int tailValue = convertStringToByte(hBuffer.substring(hBuffer.length() - 8, hBuffer.length()));
-        hBuffer.delete(hBuffer.length() - 16 + tailValue, hBuffer.length());
-
-        int writeBytes = 0;
-        int pos = 0;
-        String key;
         String value;
-        buffer.clear();
         while (true) {
-            pos++;
-            key = hBuffer.substring(0, pos);
-            value = htable.get(key);
+            value = reader.getAsString();
+            if (value == null) return;
 
-            if (value != null) {
-                buffer.put(convertStringToByte(value));
-                writeBytes++;
-                hBuffer.delete(0, pos);
-
-                if (writeBytes == sizeBuffer | hBuffer.length() == 0) {
-                    buffer.flip();
-                    outputChannel.write(buffer);
-                    buffer.clear();
-                    writeBytes = 0;
-                }
-
-                pos = 0;
-                if (hBuffer.length() == 0) break;
-                System.out.println(hBuffer.length());
-            }
+            gui.println(convertStringToByte(value) + " :: " + value);
         }
     }
 

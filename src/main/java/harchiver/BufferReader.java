@@ -5,6 +5,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.LinkedList;
 
+import static harchiver.Converters.*;
+
 public class BufferReader {
 
     private static final int SIZE_BUFFER = 2048;
@@ -19,11 +21,19 @@ public class BufferReader {
         list = new LinkedList<>();
     }
 
-    public byte get() throws IOException {
+    public Byte getAsByte() throws IOException {
         if (list.isEmpty()) {
             readFromFile();
         }
         return list.pollFirst();
+    }
+
+    public String getAsString() throws IOException {
+        Byte b = getAsByte();
+        if (b != null) {
+            return convertByteToString(b);
+        }
+        return null;
     }
 
     private void readFromFile() throws IOException {

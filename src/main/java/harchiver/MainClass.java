@@ -18,14 +18,20 @@ public class MainClass {
         try {
             packer.pack(fileToPack);
         } catch (Exception e) {
-            gui.print("Ошибка при упаковке: " + e);
+            gui.println("Ошибка при упаковке: " + e);
         }
+
+        gui.println();
+        gui.println();
+        gui.println("-------------- Начинаем распаковку -------------");
+        gui.println();
+        gui.println();
 
         //Тестируем распаковку
         try {
             unpacker.unpack(fileToUnpack);
         } catch (Exception e) {
-            gui.print("Ошибка при распаковке: " + e);
+            gui.println("Ошибка при распаковке: " + e);
         }
     }
 

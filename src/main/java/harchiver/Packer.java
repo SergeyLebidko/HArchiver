@@ -38,13 +38,16 @@ public class Packer {
         try (FileChannel inputChannel = new FileInputStream(inputFile).getChannel();
              FileChannel outputChannel = new FileOutputStream(outputFile).getChannel()) {
 
+            BufferReader reader = new BufferReader(inputChannel);
+            BufferWriter writer = new BufferWriter(outputChannel);
+
             //Формируем заголовок архива
-            createFileHeader(outputChannel, getFileExtension(inputFile));
+            createFileHeader(writer, getFileExtension(inputFile));
 
             //Запаковываем данные
-            createFileData(inputChannel, outputChannel);
+            createFileData(reader, writer);
         } catch (Exception e) {
-            throw new Exception("Не удалось создать архив");
+            throw e;
         }
     }
 
@@ -54,7 +57,7 @@ public class Packer {
         if (!file.canRead()) throw new Exception("Файл не доступен для чтения");
     }
 
-    private void createFileHeader(FileChannel outputChannel, String inputFileExtension) throws IOException {
+    private void createFileHeader(BufferWriter writer, String inputFileExtension) throws IOException {
         //Определяем количество записей в таблице Хаффмана
         int recordCount = htable.size();
 
@@ -66,95 +69,97 @@ public class Packer {
         int recordLength = 2 + (maxCodeSize / 8) + ((maxCodeSize % 8) == 0 ? 0 : 1);
 
         //Записываем эти сведения в архив
-        ByteBuffer buffer = ByteBuffer.allocate(1024);
-        buffer.put((byte) recordCount);
-        buffer.put((byte) recordLength);
-        buffer.flip();
-        outputChannel.write(buffer);
-        buffer.clear();
+        writer.put(recordCount);
+        writer.put(recordLength);
 
-        //Вносим в заголовок записи таблицы
-        byte key;               //Ключ
-        byte lengthValue;       //Длина кода Хаффмана в битах
-        String strValue;        //Код Хаффмана для данного ключа
+        gui.println("Количество записей:  " + recordCount);
+        gui.println("Длина каждой записи: " + recordLength);
+
+        //Вносим в заголовок архива записи таблицы Хаффмана, которые будут нужны при распаковке
+        gui.println();
+        gui.println("Таблица Хаффмана:");
+
+        String key;                   //Байт - ключ
+        String valueHuffmanCode;      //Код Хаффмана для данного байта-ключа
+        byte lengthHuffmanCode;       //Длина кода Хаффмана в битах
         for (Map.Entry<String, String> entry : htable.entrySet()) {
-            //Помещаем в буфер отдельные компоненты записи
-            key = convertStringToByte(entry.getKey());
-            strValue = entry.getValue();
-            lengthValue = (byte) strValue.length();
 
-            while (strValue.length() < ((recordLength - 2) * 8)) {
-                strValue += "0";
+            //Пулучаем из таблицы Хаффмана отдельные компоненты записи: ключ и код для него
+            key = entry.getKey();
+            valueHuffmanCode = entry.getValue();
+            lengthHuffmanCode = (byte) valueHuffmanCode.length();
+
+            //Если необходимо - дополняем код нулями справа пока его длина не достигнет целого числа байт
+            while (valueHuffmanCode.length() < ((recordLength - 2) * 8)) {
+                valueHuffmanCode += "0";
             }
 
-            buffer.put(key);
-            buffer.put(lengthValue);
-            for (int i = 0; i < strValue.length(); i += 8) {
-                buffer.put(convertStringToByte(strValue.substring(i, i + 8)));
+            //Сбрасываем подготовленную запись на диск
+            writer.put(key);
+            writer.put(lengthHuffmanCode);
+            for (int i = 0; i < valueHuffmanCode.length(); i += 8) {
+                writer.put(valueHuffmanCode.substring(i, i + 8));
             }
 
-            //Сбрасываем содержимое буфера на диск
-            buffer.flip();
-            outputChannel.write(buffer);
-            buffer.clear();
+            gui.println(key + "[" + convertStringToByte(key) + "]" + " :: " + lengthHuffmanCode + " :: " + valueHuffmanCode);
         }
 
         //Вносим в заголовок предыдущее расширение файла и его длину
+        gui.println();
+
         int extensionLength = inputFileExtension.getBytes().length;
-        buffer.put((byte) extensionLength);
+        writer.put(extensionLength);
+
+        gui.println("Длина расширения: " + extensionLength);
+
         if (extensionLength != 0) {
-            buffer.put(inputFileExtension.getBytes());
-        }
-        buffer.flip();
-        outputChannel.write(buffer);
-    }
-
-    private void createFileData(FileChannel inputChannel, FileChannel outputChannel) throws IOException {
-        int sizeBuffer = 1024;
-        ByteBuffer buffer = ByteBuffer.allocate(sizeBuffer);    //Буфер для хранения прочитанных байт из файла-источника
-        StringBuffer hBuffer = new StringBuffer();              //Буфер для хранения кодов, которые будут записаны в файл-приёмник
-        String key;                                             //Ключ для поиска кода в таблице Хаффмана
-        String code;                                            //Код, полученный из таблицы Хаффмана
-        int readBytes;                                          //Количество байт, прочитанных из файла в буфер
-        int writeBytes;                                         //Количество байт, записанных в буфер
-
-        while (true) {
-            readBytes = inputChannel.read(buffer);
-
-            //Заполняем hBuffer. Он будет содержать преобразованные по таблице Хаффмана байты исходного файла
-            if (readBytes != (-1)) {
-                for (int i = 0; i < readBytes; i++) {
-                    key = convertByteToString(buffer.get(i));
-                    code = htable.get(key);
-                    hBuffer.append(code);
-                }
-
-                //Сбрасываем на диск содержимое hBuffer
-                buffer.clear();
-                writeBytes = 0;
-                while (hBuffer.length() >= 8) {
-                    buffer.put(convertStringToByte(hBuffer.substring(0, 8)));
-                    writeBytes++;
-                    hBuffer.delete(0, 8);
-                    if (writeBytes == sizeBuffer | hBuffer.length() < 8) {
-                        buffer.flip();
-                        outputChannel.write(buffer);
-                        buffer.clear();
-                        writeBytes = 0;
-                    }
-                }
-            } else {
-                //Сбрасываем на диск содержимое hBuffer и при этом формируем значение конечного байта файла
-                int finalValue = hBuffer.length();
-                while (hBuffer.length() < 8) {
-                    hBuffer.append('0');
-                }
-                buffer.clear();
-                buffer.put(convertStringToByte(hBuffer.substring(0, 8)));
-                buffer.put((byte) finalValue);
-                break;
+            for (byte b : inputFileExtension.getBytes()) {
+                writer.put(b);
+                gui.print(b + " ");
             }
         }
+
+        gui.println();
+
+        writer.forceWrite();
+    }
+
+    private void createFileData(BufferReader reader, BufferWriter writer) throws IOException {
+        gui.println();
+        gui.println("Секция данных:");
+
+        String key;
+        String code;
+        StringBuffer buffer = new StringBuffer();
+        while (true) {
+            key = reader.getAsString();
+            if (key == null) break;
+            code = htable.get(key);
+
+            buffer.append(code);
+            while (buffer.length() >= 8) {
+                writer.put(buffer.substring(0, 8));
+
+                gui.println(String.format("%-4s", convertStringToByte(buffer.substring(0, 8))) + " :: " + buffer.substring(0, 8));
+
+                buffer.delete(0, 8);
+            }
+        }
+
+        gui.println();
+        gui.println("Концевик:");
+
+        int tileValue = buffer.length();
+        while (buffer.length() < 8) {
+            buffer.append('0');
+        }
+        writer.put(buffer.substring(0, 8));
+        writer.put(tileValue);
+
+        writer.forceWrite();
+
+        gui.println(String.format("%-4s", convertStringToByte(buffer.substring(0, 8))) + " :: " + buffer.substring(0, 8));
+        gui.println(String.format("%-4s", convertByteToString((byte) tileValue)) + " :: " + tileValue);
     }
 
     private File createNameOutputFile(File file) {

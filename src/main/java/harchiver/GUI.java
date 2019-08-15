@@ -105,9 +105,9 @@ public class GUI {
             File selectedFile = packFileChooser.getSelectedFile();
             try {
                 packer.pack(selectedFile);
-                print("Файл " + selectedFile.getName() + " успешно упакован");
+                println("Файл " + selectedFile.getName() + " успешно упакован");
             } catch (Exception ex) {
-                print("Ошибка: " + ex.getMessage());
+                println("Ошибка: " + ex.getMessage());
             }
         }
     };
@@ -121,14 +121,14 @@ public class GUI {
             File selectedFile = unpackFileChooser.getSelectedFile();
             try {
                 unpacker.unpack(selectedFile);
-                print("Архив " + selectedFile.getName() + " успешно распакован");
+                println("Архив " + selectedFile.getName() + " успешно распакован");
             } catch (Exception ex) {
-                print("Ошибка: " + ex.getMessage());
+                println("Ошибка: " + ex.getMessage());
             }
         }
     };
 
-    public void print(String text) {
+    public void println(String text) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -137,11 +137,20 @@ public class GUI {
         });
     }
 
-    public void print() {
+    public void println() {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
                 outputArea.append("\n");
+            }
+        });
+    }
+
+    public void print(String text) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                outputArea.append(text);
             }
         });
     }
