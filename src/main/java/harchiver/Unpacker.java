@@ -60,8 +60,8 @@ public class Unpacker {
 
     private void readArchiveHeader(BufferReader reader, File inputFile) throws Exception {
         //Получаем информацию о количестве записей в таблице Хаффмана и размере каждой записи
-        int recordCount = reader.getAsByte();
-        int recordLength = reader.getAsByte();
+        int recordCount = reader.getAsPositiveInt();
+        int recordLength = reader.getAsPositiveInt();
 
         gui.println("Количество записей:  " + recordCount);
         gui.println("Длина каждой записи: " + recordLength);
@@ -116,15 +116,52 @@ public class Unpacker {
 
     private void readFileData(BufferReader reader, BufferWriter writer) throws Exception {
         gui.println();
-        gui.println("Секция данных:");
+        gui.println("Читаем секцию данных");
 
+        int tileLenght;
+
+        StringBuffer buffer = new StringBuffer();
+        String b1 = reader.getAsString();
+        String b2 = reader.getAsString();
+        String b3 = reader.getAsString();
+
+        String key;
         String value;
-        while (true) {
-            value = reader.getAsString();
-            if (value == null) return;
+        int pos;
 
-            gui.println(convertStringToByte(value) + " :: " + value);
+        while (true) {
+
+            //Вносим данные в промежуточный буфер
+            if (b3 == null) {
+                tileLenght = convertStringToByte(b2);
+                buffer.append(b1, 0, tileLenght);
+            } else {
+                buffer.append(b1);
+            }
+
+            //Читаем промежуточный буфер и записываем данные в выходной поток
+            pos = 1;
+            while (pos <= buffer.length()) {
+                key = buffer.substring(0, pos);
+                value = htable.get(key);
+                if (value != null) {
+                    writer.put(value);
+                    buffer.delete(0, pos);
+                    pos = 1;
+                } else {
+                    pos++;
+                }
+            }
+
+            if (b3 == null) break;
+
+            //Читаем следующую порцию данных
+            b1 = b2;
+            b2 = b3;
+            b3 = reader.getAsString();
         }
+
+        writer.forceWrite();
     }
 
 }

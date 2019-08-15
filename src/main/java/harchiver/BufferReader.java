@@ -28,6 +28,10 @@ public class BufferReader {
         return list.pollFirst();
     }
 
+    public Integer getAsPositiveInt() throws IOException {
+        return convertByteToInt(getAsByte());
+    }
+
     public String getAsString() throws IOException {
         Byte b = getAsByte();
         if (b != null) {
