@@ -27,7 +27,7 @@ public class GUI {
 
         @Override
         public boolean accept(File f) {
-            String extension = getFileExtension(f);
+            String extension = FileUtilities.getFileExtension(f);
             if (extension == null) return true;
             return extension.equals("lsa");
         }
@@ -35,15 +35,6 @@ public class GUI {
         @Override
         public String getDescription() {
             return "Архивы lsa";
-        }
-
-        //Метод возвращает расширение файла file. Если передана ссылка на каталог - возвращает null
-        private String getFileExtension(File file) {
-            if (file.isDirectory()) return null;
-            String nameFile = file.getName();
-            int dotPos = nameFile.lastIndexOf(".");
-            if ((dotPos == (-1)) | (dotPos == 0) | (dotPos == (nameFile.length() - 1))) return "";
-            return (nameFile.substring(dotPos + 1)).toLowerCase();
         }
 
     }
