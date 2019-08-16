@@ -39,7 +39,7 @@ public class Packer {
             //Запаковываем данные
             createFileData(reader, writer);
         } catch (Exception e) {
-            throw new Exception("не удалось упаковать файл. Ошибка: " + e);
+            throw new Exception("Не удалось упаковать файл. Ошибка: " + e);
         }
     }
 
