@@ -29,10 +29,10 @@
 
 Скриншоты проекта приведены ниже:
 
-[!screenshot](screen1.jpg)
+![screenshot](screen1.jpg)
 
-[!screenshot](screen2.jpg)
+![screenshot](screen2.jpg)
 
-[!screenshot](screen3.jpg)
+![screenshot](screen3.jpg)
 
-[!screenshot](screen4.jpg)
+![screenshot](screen4.jpg)
